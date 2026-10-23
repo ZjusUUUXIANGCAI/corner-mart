@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e1414" />
+  <title>街角便利店 · Three.js 场景</title>
+  <meta name="description" content="一间可以切换日系、国风、欧美三种风格的 three.js 便利店场景，支持晴、雨、雪、雾与雷雨天气。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23c84732'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23fff5e5' font-family='serif'%3E街%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="app" aria-label="便利店三维场景">
+    <div id="scene" class="scene"></div>
+
+    <div class="atmosphere" aria-hidden="true">
+      <div class="vignette"></div>
+      <div class="grain"></div>
+      <div id="lightning-flash" class="lightning-flash"></div>
+      <div id="style-flash" class="style-flash"></div>
+    </div>
+
+    <div class="ui-layer">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="街角便利店">
+          <span class="brand-seal">街</span>
+          <span class="brand-copy">
+            <span class="eyebrow">A THREE.JS DIORAMA</span>
+            <span class="brand-title">街角便利店</span>
+          </span>
+        </a>
+
+        <div class="top-actions">
+          <div class="status-pill" title="当前场景状态">
+            <span class="status-dot"></span>
+            <span id="status-text">日系 · 黄昏 · 晴</span>
+          </div>
+          <button id="btn-auto" class="icon-btn is-on" type="button" aria-pressed="true" aria-label="自动环绕">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.7L3 9m0 0V4m0 5h5M4 13a8 8 0 0 0 14.6 4.7L21 15m0 0v5m0-5h-5"/></svg>
+          </button>
+          <button id="btn-reset" class="icon-btn" type="button" aria-label="重置视角">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg>
+          </button>
+          <button id="btn-full" class="icon-btn" type="button" aria-label="全屏">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <aside class="info-card" aria-live="polite">
+        <div class="info-head">
+          <span class="info-index" id="style-index">01</span>
+          <span class="info-en" id="style-en">MACHI MART</span>
+        </div>
+        <h2 id="style-title">街角の、小さな灯り。</h2>
+        <p id="style-desc">白い看板と藍ののれん。夕暮れにやわらかく灯る、いつもの街角。</p>
+        <div class="info-meta">
+          <span id="time-label">黄昏</span>
+          <i></i>
+          <span id="weather-label">晴</span>
+          <i></i>
+          <span>24H</span>
+        </div>
+      </aside>
+
+      <div class="hint">
+        <span class="hint-line"></span>
+        <span>拖动旋转 · 滚轮缩放 · 数字键 1 / 2 / 3 切换风格</span>
+      </div>
+
+      <section class="dock" aria-label="场景控制">
+        <div class="control-block style-block">
+          <div class="control-heading">
+            <span>STYLE</span>
+            <strong>店铺风格</strong>
+          </div>
+          <div class="segmented style-segmented" role="group" aria-label="店铺风格">
+            <button type="button" class="style-btn is-active" data-style="jp" aria-pressed="true">
+              <span class="style-cn">日系</span>
+              <span class="style-en-small">MACHI</span>
+            </button>
+            <button type="button" class="style-btn" data-style="cn" aria-pressed="false">
+              <span class="style-cn">国风</span>
+              <span class="style-en-small">CHANGLE</span>
+            </button>
+            <button type="button" class="style-btn" data-style="us" aria-pressed="false">
+              <span class="style-cn">欧美</span>
+              <span class="style-en-small">CORNER</span>
+            </button>
+          </div>
+        </div>
+
+        <span class="dock-divider" aria-hidden="true"></span>
+
+        <div class="control-block weather-block">
+          <div class="control-heading">
+            <span>WEATHER</span>
+            <strong>天气</strong>
+          </div>
+          <div class="chips" role="group" aria-label="天气">
+            <button type="button" class="chip is-active" data-weather="clear" aria-pressed="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+              <span>晴</span>
+            </button>
+            <button type="button" class="chip" data-weather="rain" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15a4 4 0 1 1 .8-7.9A5 5 0 0 1 17.6 9 3.5 3.5 0 0 1 17 15H7Z"/><path d="m8 18-1 2m5-2-1 2m5-2-1 2"/></svg>
+              <span>雨</span>
+            </button>
+            <button type="button" class="chip" data-weather="snow" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M9 5l3 2 3-2M9 19l3-2 3 2M5.2 10.8 8.8 9l.2-3.8M18.8 13.2 15.2 15l-.2 3.8M18.8 10.8 15.2 9l-.2-3.8M5.2 13.2 8.8 15l.2 3.8"/></svg>
+              <span>雪</span>
+            </button>
+            <button type="button" class="chip" data-weather="fog" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M2 12h20M5 16h14M8 20h8"/></svg>
+              <span>雾</span>
+            </button>
+            <button type="button" class="chip" data-weather="storm" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14a4 4 0 1 1 .8-7.9A5 5 0 0 1 17.6 8 3.5 3.5 0 0 1 17 14H7Z"/><path d="m13 14-3 5h3l-2 4 5-6h-3l2-3"/></svg>
+              <span>雷雨</span>
+            </button>
+          </div>
+        </div>
+
+        <span class="dock-divider" aria-hidden="true"></span>
+
+        <div class="control-block time-block">
+          <div class="control-heading">
+            <span>TIME</span>
+            <strong>时刻</strong>
+          </div>
+          <div class="chips time-chips" role="group" aria-label="时刻">
+            <button type="button" class="chip" data-time="day" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+              <span>白天</span>
+            </button>
+            <button type="button" class="chip is-active" data-time="dusk" aria-pressed="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h16M6 20h12M12 3v4m-6.4 6.6-1.4-1.4m15 0-1.4 1.4M3 14h2m14 0h2"/><path d="M7 14a5 5 0 0 1 10 0"/></svg>
+              <span>黄昏</span>
+            </button>
+            <button type="button" class="chip" data-time="night" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z"/></svg>
+              <span>夜晚</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div class="scene-caption" aria-hidden="true">
+        <span>SCENE 01</span>
+        <span>便利店 / 街角 / 微缩</span>
+      </div>
+    </div>
+
+    <div id="loader" class="loader" role="status" aria-live="polite">
+      <div class="loader-mark">街</div>
+      <div class="loader-word">MACHI MART</div>
+      <div class="loader-track"><i></i></div>
+      <p>正在点亮招牌…</p>
+    </div>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "machi-mart-diorama",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A three.js convenience store diorama with Japanese, Chinese and Western styles plus dynamic weather.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "start:no-open": "node server.mjs --no-open"
+  }
+}
