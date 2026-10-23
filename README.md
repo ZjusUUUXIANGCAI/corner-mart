@@ -23,12 +23,6 @@ PORT=5173 npm start
 
 > 不能直接双击 `index.html`：场景使用 ES Modules，浏览器要求通过 HTTP 访问。`server.mjs` 只负责托管本地文件，three.js 已经放在 `vendor/` 中，**断网也能运行**。
 
-## 部署到 GitHub Pages
-
-1. 把这个目录里的内容放到仓库根目录（或者 `docs/` 目录）。
-2. 打开仓库 **Settings → Pages**，选择从分支部署，目录选 `/ (root)` 或 `/docs`。
-3. 不需要构建步骤，也不需要改路径。所有 HTML / CSS / JS 引用都使用 `./` 相对路径，可以直接运行在 `https://<用户名>.github.io/<仓库名>/` 这样的子路径下。
-4. `server.mjs` 和 `start.bat` 只用于本地预览，不会影响 GitHub Pages。
 
 ## 操作
 
