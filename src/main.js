@@ -10,6 +10,7 @@ import { SkySystem } from './sky.js';
 import { WeatherSystem } from './weather.js';
 import { damp, mulberry32, randRange } from './util.js';
 import { softCircleTexture } from './textures.js';
+import { AmbientMusic } from './audio.js';
 
 const STYLE_ORDER = ['jp', 'cn', 'us'];
 const TIME_LABELS = { day: '白天', dusk: '黄昏', night: '夜晚' };
@@ -30,6 +31,7 @@ const weatherLabel = document.querySelector('#weather-label');
 const autoButton = document.querySelector('#btn-auto');
 const resetButton = document.querySelector('#btn-reset');
 const fullButton = document.querySelector('#btn-full');
+const musicButton = document.querySelector('#btn-music');
 const styleButtons = [...document.querySelectorAll('[data-style]')];
 const weatherButtons = [...document.querySelectorAll('[data-weather]')];
 const timeButtons = [...document.querySelectorAll('[data-time]')];
@@ -55,6 +57,9 @@ let elapsed = 0;
 let ready = false;
 let autoRotate = true;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const audio = new AmbientMusic();
+const moveKeys = new Set();
+const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight']);
 
 function hexToRgb(value) {
   const hex = value.replace('#', '');
@@ -87,11 +92,13 @@ function initRenderer() {
   sceneHost.appendChild(renderer.domElement);
 }
 
+const DEFAULT_TARGET = [0, 1.2, 1.2];
+
 function getView() {
   const portrait = window.innerWidth / window.innerHeight < 0.82;
   return portrait
-    ? { fov: 50, position: [15.6, 11.0, 24.8] }
-    : { fov: 38, position: [12.2, 8.1, 18.6] };
+    ? { fov: 50, position: [15.6, 10.2, 27.5] }
+    : { fov: 36, position: [11.2, 7.1, 25.5] };
 }
 
 function applyViewProjection() {
@@ -115,12 +122,23 @@ function initScene() {
   pmrem.dispose();
 
   controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 2.35, 0);
+  controls.target.set(...DEFAULT_TARGET);
   controls.enableDamping = true;
   controls.dampingFactor = 0.055;
-  controls.enablePan = false;
+  controls.enablePan = true;
+  controls.screenSpacePanning = true;
+  controls.panSpeed = 0.9;
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.PAN
+  };
+  controls.touches = {
+    ONE: THREE.TOUCH.ROTATE,
+    TWO: THREE.TOUCH.DOLLY_PAN
+  };
   controls.minDistance = 12;
-  controls.maxDistance = 30;
+  controls.maxDistance = 34;
   controls.minPolarAngle = 0.05;
   controls.maxPolarAngle = 1.52;
   controls.autoRotate = false;
@@ -165,7 +183,8 @@ function initScene() {
   applyStyle(initialStyle, true);
   applyTime(initialTime, true);
   applyWeather(initialWeather, true);
-  const initialAzimuth = Number(params.get('az'));
+  const azimuthParam = params.get('az');
+  const initialAzimuth = azimuthParam === null ? NaN : Number(azimuthParam);
   if (Number.isFinite(initialAzimuth)) {
     const view = getView();
     const radius = Math.hypot(view.position[0], view.position[2]);
@@ -212,6 +231,22 @@ function setupUI() {
   for (const button of timeButtons) {
     button.addEventListener('click', () => applyTime(button.dataset.time));
   }
+  if (musicButton) {
+    if (!audio.supported) {
+      musicButton.disabled = true;
+      musicButton.title = '当前浏览器不支持背景音乐';
+      musicButton.setAttribute('aria-label', '当前浏览器不支持背景音乐');
+    } else {
+      musicButton.addEventListener('click', async () => {
+        const playing = await audio.toggle();
+        musicButton.classList.toggle('is-on', playing);
+        musicButton.setAttribute('aria-pressed', String(playing));
+        const label = playing ? '关闭背景音乐' : '开启背景音乐';
+        musicButton.title = label;
+        musicButton.setAttribute('aria-label', label);
+      });
+    }
+  }
   autoButton.addEventListener('click', () => {
     autoRotate = !autoRotate;
     controls.autoRotate = autoRotate;
@@ -235,17 +270,28 @@ function setupUI() {
   });
   window.addEventListener('keydown', (event) => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (MOVE_KEYS.has(event.code)) {
+      moveKeys.add(event.code);
+      event.preventDefault();
+      return;
+    }
     if (event.code === 'Digit1') applyStyle('jp');
     if (event.code === 'Digit2') applyStyle('cn');
     if (event.code === 'Digit3') applyStyle('us');
     if (event.code === 'KeyR') resetCamera();
+    if (event.code === 'KeyM') musicButton?.click();
   });
+  window.addEventListener('keyup', (event) => {
+    moveKeys.delete(event.code);
+  });
+  window.addEventListener('blur', () => moveKeys.clear());
 }
 
 function applyStyle(style, initial = false) {
   const meta = STYLES[style];
   if (!meta || (!initial && style === currentStyle)) return;
   currentStyle = style;
+  audio.setStyle(style);
 
   const next = buildStore(style);
   if (store) {
@@ -471,7 +517,7 @@ function easeInOutCubic(t) {
 function resetCamera(instant = false) {
   const view = getView();
   const position = new THREE.Vector3(...view.position);
-  const target = new THREE.Vector3(0, 2.35, 0);
+  const target = new THREE.Vector3(...DEFAULT_TARGET);
   if (instant) {
     camera.fov = view.fov;
     camera.updateProjectionMatrix();
@@ -509,6 +555,27 @@ function onResize() {
   if (bloomPass) bloomPass.setSize(width, height);
 }
 
+function moveView(dt) {
+  if (!moveKeys.size || cameraTween) return;
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  forward.y = 0;
+  if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
+  forward.normalize();
+  const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+  const move = new THREE.Vector3();
+  if (moveKeys.has('KeyW')) move.add(forward);
+  if (moveKeys.has('KeyS')) move.sub(forward);
+  if (moveKeys.has('KeyD')) move.add(right);
+  if (moveKeys.has('KeyA')) move.sub(right);
+  if (moveKeys.has('KeyE')) move.y += 1;
+  if (moveKeys.has('KeyQ')) move.y -= 1;
+  if (move.lengthSq() === 0) return;
+  const boost = moveKeys.has('ShiftLeft') || moveKeys.has('ShiftRight') ? 2.2 : 1;
+  move.normalize().multiplyScalar(8 * boost * dt);
+  camera.position.add(move);
+  controls.target.add(move);
+}
+
 function render(now) {
   const dt = Math.min(0.05, (now - lastFrame) / 1000 || 0.016);
   lastFrame = now;
@@ -532,6 +599,7 @@ function render(now) {
     }
   }
 
+  moveView(dt);
   sky.update(dt, elapsed);
   weather.update(dt, elapsed);
   updateMood(dt);
@@ -562,6 +630,7 @@ function boot() {
       controls,
       sky,
       weather,
+      audio,
       setStyle: (style) => applyStyle(style),
       setWeather: (name) => applyWeather(name),
       setTime: (name) => applyTime(name),

@@ -868,21 +868,25 @@ function buildStreetscape(data) {
   // ground and paving
   addBox(group, 60, 0.2, 44, material('earth', { color: '#3d433c', roughness: 1 }), 0, -0.11, 2);
   const sidewalkTex = style === 'us'
-    ? stoneTexture({ repeat: [7, 2.2], base: '#8d6b58' })
+    ? stoneTexture({ repeat: [4.8, 1.9], base: '#8d6b58' })
     : style === 'cn'
-      ? stoneTexture({ repeat: [7, 2.2], base: '#858681' })
-      : stoneTexture({ repeat: [7, 2.2], base: '#9a9a90' });
+      ? stoneTexture({ repeat: [4.8, 1.9], base: '#858681' })
+      : stoneTexture({ repeat: [4.8, 1.9], base: '#9a9a90' });
+  sidewalkTex.anisotropy = 16;
+  sidewalkTex.minFilter = THREE.LinearMipmapLinearFilter;
   addBox(group, 25, 0.18, 5.7, new THREE.MeshStandardMaterial({ map: sidewalkTex, roughness: 0.9 }), 0, 0.09, 5.9);
   addBox(group, 25, 0.3, 0.3, material('curb', { color: style === 'cn' ? '#8e7e6d' : '#b3ac9e', roughness: 0.9 }), 0, 0.14, 8.82);
-  addBox(group, 60, 0.1, 13, new THREE.MeshStandardMaterial({ map: asphaltTexture({ repeat: [12, 2.6] }), roughness: 0.92, metalness: 0.02 }), 0, 0.015, 15.3);
+  const roadTex = asphaltTexture({ repeat: [12, 2.6] });
+  roadTex.anisotropy = 16;
+  addBox(group, 60, 0.1, 13, new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.92, metalness: 0.02 }), 0, 0.015, 15.3);
   addBox(group, 25, 0.06, 0.12, material('sidewalk-line', { color: '#e4decf', roughness: 0.8 }), 0, 0.19, 8.98);
 
   // road markings
   for (let i = -5; i <= 5; i++) {
-    addBox(group, 0.12, 0.01, 1.25, new THREE.MeshBasicMaterial({ color: '#ded6c1', transparent: true, opacity: 0.55 }), i * 2.5, 0.075, 15.4, { castShadow: false });
+    addBox(group, 1.25, 0.01, 0.12, new THREE.MeshBasicMaterial({ color: '#ded6c1', transparent: true, opacity: 0.55 }), i * 2.5, 0.075, 15.4, { castShadow: false });
   }
-  // A proper zebra crossing: six even bars run straight across the road,
-  // perpendicular to the kerb, with equal gaps and clean ends.
+  // Six even bars span the road from kerb to kerb; the lane dashes run
+  // along the road, but the crossing itself stays perpendicular to it.
   const zebraMat = new THREE.MeshBasicMaterial({ color: '#ede7d7', transparent: true, opacity: 0.72, depthWrite: false });
   for (let i = 0; i < 6; i++) {
     addBox(group, 0.46, 0.014, 12.4, zebraMat, -0.11 + i * 1.02, 0.079, 15.3, { castShadow: false });
@@ -1029,8 +1033,8 @@ function buildStreetscape(data) {
       group.add(crown);
     }
     // bench cat
-    const cat = createShopCat();
-    cat.position.set(-5.8, 0.62, 4.31);
+    const cat = createShopCat({ mat: false });
+    cat.position.set(-5.8, 0.665, 4.31);
     cat.scale.setScalar(0.8);
     cat.rotation.y = 1.1;
     group.add(cat);
@@ -1144,9 +1148,6 @@ function buildBackground(data, rand) {
       [4.5, 6.8, 0.5],
       [10.5, 6.55, -0.6]
     ]));
-    const bush = createBushCluster({ radius: 0.8, color: '#3e5841' });
-    bush.position.set(-11.5, 0.1, 5.5);
-    bg.add(bush);
     const backTree = createBushCluster({ radius: 1.25, color: '#334c3a' });
     backTree.position.set(-12.4, 0.1, -12.8);
     backTree.scale.set(1.2, 1.4, 1.2);
@@ -1187,9 +1188,6 @@ function buildBackground(data, rand) {
     const moongate = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.18, 10, 32), material('moongate', { color: '#4b4c46', roughness: 0.98 }));
     moongate.position.set(-11.8, 1.15, 3.5);
     bg.add(moongate);
-    const bush = createBushCluster({ radius: 0.95, color: '#3d563f' });
-    bush.position.set(9.8, 0.1, 3.9);
-    bg.add(bush);
     const backBamboo = createBambooPlanter();
     backBamboo.position.set(11.4, 0.1, -11.5);
     backBamboo.scale.setScalar(1.8);
@@ -1223,22 +1221,6 @@ function buildBackground(data, rand) {
         }
       }
     }
-    const tree = addCylinder(bg, 0.12, 0.18, 2.8, 9, material('bg-tree-trunk', { color: '#3f2f26', roughness: 1 }), 11.5, 1.4, 1.8);
-    const leaves = material('bg-tree-leaf', { color: '#3f5a3e', roughness: 0.98, flatShading: true });
-    for (let i = 0; i < 6; i++) {
-      const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.8, 0), leaves);
-      leaf.position.set(11.5 + Math.cos(i * 1.7) * 0.5, 3.0 + Math.sin(i * 2.1) * 0.45, 1.8 + Math.sin(i * 1.7) * 0.35);
-      leaf.castShadow = false;
-      bg.add(leaf);
-    }
-  }
-
-  // A single, very distant silhouette band keeps the horizon closed without
-  // competing with the store.
-  const farMat = new THREE.MeshStandardMaterial({ color: style === 'us' ? '#323632' : '#303934', roughness: 1 });
-  for (let i = 0; i < 5; i++) {
-    const h = randRange(rand, 3.5, 7.0);
-    addBox(bg, randRange(rand, 7, 12), h, 4, farMat, -26 + i * 11, h / 2, -32 - randRange(rand, 0, 5), { castShadow: false });
   }
 
   bg.traverse((obj) => {
@@ -1256,7 +1238,7 @@ function buildCity(data) {
   group.add(city);
   const rand = mulberry32(style === 'jp' ? 701 : style === 'cn' ? 907 : 1103);
 
-  const tint = style === 'cn' ? '#a99b87' : style === 'us' ? '#ad9c91' : '#a8a49a';
+  const tint = style === 'cn' ? '#c4b6a2' : style === 'us' ? '#c8b7ac' : '#c5bbac';
   const cityTextures = [
     makeCityFacadeTexture(0, 17),
     makeCityFacadeTexture(1, 43),
@@ -1266,7 +1248,7 @@ function buildCity(data) {
     map: texture,
     emissiveMap: texture,
     emissive: '#ffd7a0',
-    emissiveIntensity: 0.34,
+    emissiveIntensity: 0.6,
     color: tint,
     roughness: 0.92,
     metalness: 0.02
@@ -1275,24 +1257,24 @@ function buildCity(data) {
     map: cityTextures[1],
     emissiveMap: cityTextures[1],
     emissive: '#dfd1b7',
-    emissiveIntensity: 0.2,
-    color: '#727d7b',
+    emissiveIntensity: 0.5,
+    color: '#98a49e',
     roughness: 0.96
   });
   const farMat = new THREE.MeshStandardMaterial({
     map: cityTextures[2],
     emissiveMap: cityTextures[2],
     emissive: '#c9d5d7',
-    emissiveIntensity: 0.08,
-    color: '#4d5c62',
+    emissiveIntensity: 0.55,
+    color: '#8d9c96',
     roughness: 1
   });
   const glassMat = new THREE.MeshStandardMaterial({
     map: cityTextures[1],
     emissiveMap: cityTextures[1],
     emissive: '#b8d9df',
-    emissiveIntensity: 0.28,
-    color: '#6f8c95',
+    emissiveIntensity: 0.55,
+    color: '#a1b8ba',
     roughness: 0.52,
     metalness: 0.18
   });
@@ -1304,7 +1286,8 @@ function buildCity(data) {
   const metal = material('city-metal', { color: '#343f3e', roughness: 0.6, metalness: 0.35 });
 
   addBox(city, 270, 0.14, 270, material('city-ground', { color: '#303735', roughness: 1 }), 0, -0.07, 0, { castShadow: false, receiveShadow: false });
-  const southWalk = new THREE.MeshStandardMaterial({ map: stoneTexture({ repeat: [13, 2.6], base: '#88877e' }), roughness: 0.95 });
+  const southWalk = new THREE.MeshStandardMaterial({ map: stoneTexture({ repeat: [9, 2], base: '#88877e' }), roughness: 0.95 });
+  southWalk.map.anisotropy = 16;
   addBox(city, 80, 0.16, 10.0, southWalk, 1, 0.08, 28.2, { castShadow: false });
   addBox(city, 80, 0.18, 0.28, material('city-curb', { color: '#a69e8f', roughness: 0.9 }), 1, 0.14, 23.28, { castShadow: false });
 
@@ -1489,13 +1472,13 @@ function buildCity(data) {
 
   // Street trees and lamps across the road.
   const trunkMat = material('city-trunk', { color: '#49382d', roughness: 1 });
-  const leafMat = material('city-leaf', { color: '#3f5d45', roughness: 0.98, flatShading: true });
+  const leafMat = new THREE.MeshStandardMaterial({ color: '#647d60', emissive: '#1d2a1e', emissiveIntensity: 0.22, roughness: 0.98, flatShading: true });
   for (const x of [-36, -25, -13, 1, 14, 28, 39]) {
     const z = 27.2;
     const h = randRange(rand, 2.1, 3.4);
     addCylinder(city, 0.08, 0.12, h, 7, trunkMat, x, 0.16 + h / 2, z, { castShadow: false });
     for (let n = 0; n < 3; n++) {
-      const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(randRange(rand, 0.6, 0.95), 0), leafMat);
+      const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(randRange(rand, 0.45, 0.72), 0), leafMat);
       leaf.position.set(x + randRange(rand, -0.5, 0.5), 0.16 + h + randRange(rand, 0.1, 0.8), z + randRange(rand, -0.4, 0.4));
       leaf.castShadow = false;
       city.add(leaf);
@@ -1546,6 +1529,24 @@ function buildCity(data) {
   addCar(-17, 13.1, '#3f5e68', 0);
   addCar(19, 18.4, '#7b3a35', Math.PI);
   addCar(3.2, 20.3, '#c8b08b', 0);
+}
+
+function buildSideLanes(data) {
+  const { group, style } = data;
+  const pathBase = style === 'cn' ? '#9f9484' : style === 'us' ? '#9b9489' : '#a3a094';
+  const curbMat = material('lane-curb', { color: style === 'cn' ? '#9b8b79' : '#b4ada1', roughness: 0.9 });
+  const tactile = material('lane-tactile', { color: '#d6b64b', roughness: 0.7 });
+
+  // Far pavement apron joins the road to the existing city sidewalk without a
+  // grass verge or dark strip; the crossing has flat tactile landings.
+  const farWalkMat = new THREE.MeshStandardMaterial({
+    map: (() => { const t = stoneTexture({ repeat: [14, 1], base: pathBase }); t.anisotropy = 16; return t; })(),
+    roughness: 0.95
+  });
+  addBox(group, 60, 0.16, 1.75, farWalkMat, 0, 0.1, 22.55, { castShadow: false });
+  addBox(group, 60, 0.12, 0.18, curbMat, 0, 0.06, 21.78, { castShadow: false });
+  addBox(group, 4.3, 0.018, 0.18, tactile, 2.44, 0.19, 8.58, { castShadow: false });
+  addBox(group, 4.3, 0.018, 0.18, tactile, 2.44, 0.19, 22.05, { castShadow: false });
 }
 
 function buildBackstage(data) {
@@ -1605,39 +1606,104 @@ function buildBackstage(data) {
   addBox(group, 0.42, 0.3, 0.38, material('back-crate', { color: '#8f7658', roughness: 0.9 }), 3.4, 0.25, -3.75);
   addBox(group, 0.38, 0.22, 0.32, material('back-crate2', { color: '#a48b68', roughness: 0.9 }), 3.4, 0.52, -3.78, { rotation: [0, 0.2, 0] });
 
-  // Small delivery van parked in the service bay.
+  // Delivery van in the service bay: separate cab, cargo box, glazing,
+  // wheel arches, door hardware and rear lamps instead of one white block.
   const van = new THREE.Group();
-  const vanBody = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.82, 1.16), material('van-body', { color: '#d7d0bd', roughness: 0.55, metalness: 0.18 }));
-  vanBody.position.set(-3.65, 0.58, 0);
-  van.add(vanBody);
-  const vanCab = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.7, 1.1), material('van-cab', { color: '#c9c2ae', roughness: 0.5, metalness: 0.2 }));
-  vanCab.position.set(-1.92, 0.56, 0);
-  van.add(vanCab);
-  const vanGlass = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.36, 0.82), new THREE.MeshStandardMaterial({ color: '#637b7d', roughness: 0.2, metalness: 0.2 }));
-  vanGlass.position.set(-1.44, 0.74, 0);
-  van.add(vanGlass);
-  for (const wx of [-2.15, -3.75]) {
-    const sideGlass = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.28, 0.025), new THREE.MeshStandardMaterial({ color: '#536d70', roughness: 0.2, metalness: 0.2 }));
-    sideGlass.position.set(wx, 0.76, -0.585);
-    van.add(sideGlass);
+  const vanBody = material('van-body', { color: '#d9d2c0', roughness: 0.48, metalness: 0.18 });
+  const vanCabMat = material('van-cab', { color: '#e2dccb', roughness: 0.44, metalness: 0.2 });
+  const vanAccent = material('van-accent', { color: '#2f5a4f', roughness: 0.55 });
+  const vanTrim = material('van-trim', { color: '#2a3331', roughness: 0.55, metalness: 0.35 });
+  const vanGlassMat = new THREE.MeshStandardMaterial({ color: '#506d70', roughness: 0.15, metalness: 0.25 });
+  const vanTire = material('van-wheel', { color: '#151a1a', roughness: 0.92 });
+  const vanHub = material('van-hub', { color: '#9a9c92', roughness: 0.45, metalness: 0.65 });
+  const vanLight = new THREE.MeshStandardMaterial({ color: '#fff2c6', emissive: '#ffd58c', emissiveIntensity: 1.8, roughness: 0.3 });
+  const vanTail = new THREE.MeshStandardMaterial({ color: '#ff6045', emissive: '#ff2a14', emissiveIntensity: 1.4, roughness: 0.35 });
+
+  addBox(van, 3.45, 0.16, 1.08, vanTrim, -2.8, 0.34, 0);
+  addBox(van, 2.35, 1.0, 1.24, vanBody, -3.42, 0.9, 0);
+  addBox(van, 1.1, 0.86, 1.18, vanCabMat, -1.78, 0.75, 0);
+  addBox(van, 0.52, 0.5, 1.1, vanCabMat, -1.08, 0.55, 0);
+  addBox(van, 2.38, 0.1, 1.2, vanCabMat, -3.42, 1.36, 0);
+  addBox(van, 1.12, 0.08, 1.16, vanAccent, -1.78, 1.17, 0);
+
+  // Side glazing, cargo door seam, stripe and MART decal.
+  addBox(van, 0.72, 0.36, 0.035, vanGlassMat, -1.82, 0.92, -0.632);
+  addBox(van, 0.72, 0.36, 0.035, vanGlassMat, -1.82, 0.92, 0.632);
+  addBox(van, 2.9, 0.085, 0.025, vanAccent, -3.45, 0.68, -0.632);
+  addBox(van, 0.025, 0.86, 0.025, vanTrim, -3.02, 0.88, -0.637);
+  addBox(van, 0.025, 0.86, 0.025, vanTrim, -3.94, 0.88, -0.637);
+  addBox(van, 0.12, 0.035, 0.03, vanHub, -3.18, 0.8, -0.65);
+  addBox(van, 0.12, 0.035, 0.03, vanHub, -4.08, 0.8, -0.65);
+  const decalTex = signTexture({
+    width: 512, height: 160, bg: '#e5decc', fg: '#2b3d36', accent: '#2f5a4f',
+    title: 'MART', subtitle: 'DELIVERY  ·  24H',
+    titleFont: '900 84px Georgia, serif', subtitleFont: '600 20px Georgia, serif'
+  });
+  const decal = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.28), new THREE.MeshStandardMaterial({ map: decalTex, roughness: 0.55, metalness: 0.05 }));
+  decal.position.set(-3.45, 0.94, -0.644);
+  decal.rotation.y = Math.PI;
+  van.add(decal);
+
+  // Side mirrors and cab handles.
+  for (const z of [-0.68, 0.68]) {
+    addBox(van, 0.06, 0.06, 0.22, vanTrim, -1.52, 1.12, z);
+    addBox(van, 0.12, 0.16, 0.045, vanTrim, -1.48, 1.09, z + Math.sign(z) * 0.1);
+    addBox(van, 0.12, 0.035, 0.03, vanHub, -1.7, 0.8, z);
   }
-  for (const wx of [-4.35, -2.55]) {
-    for (const wz of [-0.54, 0.54]) {
-      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.12, 10), material('van-wheel', { color: '#171c1c', roughness: 0.9 }));
-      wheel.position.set(wx, 0.18, wz);
-      wheel.rotation.x = Math.PI / 2;
-      van.add(wheel);
+
+  // Wheels, hubs, arches and mud flaps.
+  for (const wx of [-4.12, -2.12]) {
+    for (const wz of [-0.64, 0.64]) {
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.16, 14), vanTire);
+      tire.position.set(wx, 0.24, wz);
+      tire.rotation.x = Math.PI / 2;
+      tire.castShadow = true;
+      van.add(tire);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.17, 10), vanHub);
+      hub.position.set(wx, 0.24, wz);
+      hub.rotation.x = Math.PI / 2;
+      van.add(hub);
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.028, 6, 18, Math.PI), vanTrim);
+      arch.position.set(wx, 0.28, wz + Math.sign(wz) * 0.005);
+      van.add(arch);
     }
+    addBox(van, 0.08, 0.24, 0.06, vanTrim, wx - 0.28, 0.15, -0.7);
   }
-  const tail = new THREE.MeshStandardMaterial({ color: '#ff6a4c', emissive: '#ff3c20', emissiveIntensity: 1.4, roughness: 0.4 });
-  for (const wz of [-0.34, 0.34]) {
-    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.16), tail);
-    lamp.position.set(-4.93, 0.53, wz);
-    van.add(lamp);
+
+  // Front end: grille, bumper, headlamps and plate.
+  addBox(van, 0.06, 0.18, 0.72, vanTrim, -0.99, 0.48, 0);
+  for (let i = 0; i < 4; i++) {
+    addBox(van, 0.02, 0.025, 0.62, vanHub, -0.96, 0.41 + i * 0.045, 0, { castShadow: false });
   }
+  addBox(van, 0.08, 0.14, 1.16, vanTrim, -0.94, 0.28, 0);
+  for (const z of [-0.42, 0.42]) {
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.13, 0.22), vanLight);
+    head.position.set(-0.97, 0.65, z);
+    van.add(head);
+  }
+  addBox(van, 0.02, 0.13, 0.26, vanTrim, -1.0, 0.4, 0, { castShadow: false });
+
+  // Rear doors, bumper, lamps and plate.
+  addBox(van, 0.05, 1.0, 0.56, vanBody, -4.62, 0.9, -0.31);
+  addBox(van, 0.05, 1.0, 0.56, vanBody, -4.62, 0.9, 0.31);
+  addBox(van, 0.025, 0.92, 0.025, vanTrim, -4.65, 0.9, 0);
+  for (const z of [-0.18, 0.18]) {
+    addBox(van, 0.045, 0.04, 0.12, vanHub, -4.66, 0.78, z);
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.16, 0.16), vanTail);
+    tail.position.set(-4.65, 0.5, z * 1.9);
+    van.add(tail);
+  }
+  addBox(van, 0.09, 0.18, 1.2, vanTrim, -4.62, 0.3, 0);
+  addBox(van, 0.02, 0.12, 0.28, vanHub, -4.64, 0.36, 0, { castShadow: false });
+
+  // Roof vent and rails.
+  addBox(van, 0.4, 0.08, 0.36, vanTrim, -3.5, 1.43, 0);
+  addBox(van, 2.2, 0.035, 0.035, vanTrim, -3.45, 1.45, -0.45);
+  addBox(van, 2.2, 0.035, 0.035, vanTrim, -3.45, 1.45, 0.45);
+
   van.position.set(0.2, 0.1, -4.9);
   van.rotation.y = -0.08;
-  van.traverse((obj) => { obj.castShadow = true; obj.receiveShadow = true; });
+  van.traverse((obj) => { if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; } });
   group.add(van);
 
   const lampMat = new THREE.MeshStandardMaterial({ color: '#ffe4b1', emissive: '#ffc477', emissiveIntensity: 0.8, roughness: 0.4 });
@@ -1740,6 +1806,11 @@ function buildSnowCaps(data) {
   backSnow.position.set(0, 0.105, -1.8);
   backSnow.renderOrder = 1;
   group.add(backSnow);
+  const vergeSnow = new THREE.Mesh(new THREE.PlaneGeometry(59, 1.15), snowMat);
+  vergeSnow.rotation.x = -Math.PI / 2;
+  vergeSnow.position.set(0, 0.198, 22.45);
+  vergeSnow.renderOrder = 1;
+  group.add(vergeSnow);
 
   // Soft drifts along the curb and storefront.
   for (let i = 0; i < 9; i++) {
@@ -1771,6 +1842,7 @@ export function buildStore(style) {
   buildInterior(data);
   buildStreetscape(data);
   buildBackstage(data);
+  buildSideLanes(data);
   buildCity(data);
   buildSnowCaps(data);
   data.bounds = new THREE.Box3(new THREE.Vector3(-8.5, 0, -4), new THREE.Vector3(8.5, 6, 9));
