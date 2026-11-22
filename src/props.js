@@ -264,53 +264,128 @@ export function createSmallPlant(parent, x, y, scale = 1, leafColor = '#4b7353')
   }
 }
 
-export function createShopCat() {
+export function createShopCat({ mat = true } = {}) {
   const group = new THREE.Group();
+  group.name = 'shop-cat';
+  group.scale.setScalar(0.8);
+
   const fur = material('cat-fur', { color: '#d99a5c', roughness: 0.88 });
   const cream = material('cat-cream', { color: '#f0dcc0', roughness: 0.9 });
   const dark = material('cat-dark', { color: '#3d3028', roughness: 0.8 });
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.25, 18, 12), fur);
-  body.scale.set(1.25, 0.62, 0.78);
-  body.position.y = 0.16;
+  const amber = new THREE.MeshStandardMaterial({ color: '#c58a3e', emissive: '#5b2d10', emissiveIntensity: 0.2, roughness: 0.35 });
+  const pink = material('cat-nose', { color: '#b76c63', roughness: 0.7 });
+  const collarMat = material('cat-collar', { color: '#2f4a44', roughness: 0.5, metalness: 0.2 });
+  const bellMat = material('cat-bell', { color: '#d8b46a', roughness: 0.35, metalness: 0.65 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 14), fur);
+  body.scale.set(1, 1.2, 0.86);
+  body.position.y = 0.26;
   body.castShadow = true;
   group.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 18, 12), fur);
-  head.position.set(0.27, 0.2, -0.08);
-  head.scale.set(1, 0.95, 1);
+
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.105, 14, 10), cream);
+  chest.scale.set(0.9, 1.1, 0.55);
+  chest.position.set(0.145, 0.31, 0);
+  chest.castShadow = true;
+  group.add(chest);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 20, 14), fur);
+  head.position.set(0.12, 0.5, 0);
+  head.scale.set(1, 0.95, 0.95);
   head.castShadow = true;
   group.add(head);
-  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), cream);
-  muzzle.position.set(0.38, 0.16, -0.08);
-  muzzle.scale.set(1.2, 0.9, 1);
-  group.add(muzzle);
+
   for (const side of [-1, 1]) {
-    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.11, 4), fur);
-    ear.position.set(0.24, 0.33, -0.08 + side * 0.075);
-    ear.rotation.z = -0.2;
-    ear.rotation.x = side * 0.12;
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), cream);
+    cheek.scale.set(0.95, 0.75, 0.7);
+    cheek.position.set(0.215, 0.475, side * 0.065);
+    group.add(cheek);
+
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.14, 4), fur);
+    ear.position.set(0.1, 0.665, side * 0.075);
+    ear.rotation.z = -0.12;
+    ear.rotation.x = side * 0.14;
+    ear.castShadow = true;
     group.add(ear);
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 6), dark);
-    eye.position.set(0.355, 0.23, -0.08 + side * 0.05);
+
+    const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.034, 0.09, 4), cream);
+    innerEar.position.set(0.115, 0.67, side * 0.075);
+    innerEar.rotation.z = -0.12;
+    innerEar.rotation.x = side * 0.14;
+    group.add(innerEar);
+
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), amber);
+    eye.position.set(0.255, 0.52, side * 0.055);
     group.add(eye);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), dark);
+    pupil.position.set(0.27, 0.52, side * 0.055);
+    group.add(pupil);
+    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 6, 4), new THREE.MeshBasicMaterial({ color: '#fff8e7' }));
+    glint.position.set(0.275, 0.528, side * 0.052);
+    group.add(glint);
   }
-  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.045, 8, 16, Math.PI * 1.5), fur);
-  tail.position.set(-0.2, 0.14, 0.03);
-  tail.rotation.x = Math.PI / 2;
-  tail.rotation.z = 0.3;
+
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 8), cream);
+  muzzle.scale.set(1.15, 0.78, 0.9);
+  muzzle.position.set(0.255, 0.465, 0);
+  muzzle.castShadow = true;
+  group.add(muzzle);
+
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), pink);
+  nose.position.set(0.32, 0.478, 0);
+  group.add(nose);
+
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.012, 6, 18), collarMat);
+  collar.position.set(0.12, 0.39, 0);
+  collar.rotation.x = Math.PI / 2;
+  group.add(collar);
+  const bell = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), bellMat);
+  bell.position.set(0.235, 0.375, 0);
+  bell.castShadow = true;
+  group.add(bell);
+
+  for (const side of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.043, 0.1, 4, 8), fur);
+    leg.position.set(0.14, 0.095, side * 0.072);
+    leg.castShadow = true;
+    group.add(leg);
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), cream);
+    paw.scale.set(1.25, 0.55, 1);
+    paw.position.set(0.16, 0.035, side * 0.072);
+    paw.castShadow = true;
+    group.add(paw);
+    const haunch = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 8), fur);
+    haunch.scale.set(1, 0.9, 1);
+    haunch.position.set(-0.08, 0.13, side * 0.115);
+    haunch.castShadow = true;
+    group.add(haunch);
+  }
+
+  const tailCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.18, 0.07, 0.02),
+    new THREE.Vector3(-0.3, 0.1, 0.07),
+    new THREE.Vector3(-0.31, 0.25, 0.13),
+    new THREE.Vector3(-0.18, 0.31, 0.15),
+    new THREE.Vector3(-0.05, 0.29, 0.11)
+  ]);
+  const tail = new THREE.Mesh(new THREE.TubeGeometry(tailCurve, 24, 0.028, 6, false), fur);
   tail.castShadow = true;
   group.add(tail);
-  for (let i = 0; i < 3; i++) {
-    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.18 + i * 0.026, 0.02, 5, 12, Math.PI * 0.9), dark);
-    stripe.position.set(0.02 + i * 0.1, 0.24, -0.05);
-    stripe.rotation.x = Math.PI / 2;
-    stripe.rotation.z = 0.1;
-    stripe.scale.set(0.8, 1, 1);
-    group.add(stripe);
+  const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), dark);
+  tailTip.position.set(-0.05, 0.29, 0.11);
+  group.add(tailTip);
+
+  if (mat) {
+    const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.025, 20), material('cat-mat', { color: '#384b47', roughness: 0.95 }));
+    cushion.position.y = 0.0125;
+    cushion.receiveShadow = true;
+    group.add(cushion);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.425, 0.008, 5, 24), material('cat-mat-rim', { color: '#50645f', roughness: 0.85 }));
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 0.027;
+    group.add(rim);
   }
-  const mat = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.035, 20), material('cat-mat', { color: '#384b47', roughness: 0.95 }));
-  mat.position.y = 0.018;
-  mat.receiveShadow = true;
-  group.add(mat);
+
   return group;
 }
 
